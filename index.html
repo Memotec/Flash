@@ -2,130 +2,62 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Quản lý Flashcard - Chế độ Xáo trộn</title>
+    <title>Flashcard Google Sheets</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background-color: #f4f7f6; }
-        .input-group { margin-bottom: 15px; }
-        input, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn-row { margin-bottom: 20px; display: flex; gap: 10px; }
-        button { padding: 12px 20px; cursor: pointer; border: none; border-radius: 8px; color: white; font-weight: bold; transition: 0.3s; flex: 1; }
-        .btn-add { background: #27ae60; }
-        .btn-flash { background: #e67e22; }
-        .btn-add:hover { background: #219150; }
-        .btn-flash:hover { background: #d35400; }
-        #list { margin-top: 30px; }
-        .qa-item { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; position: relative; }
-        .del-btn { position: absolute; top: 10px; right: 10px; color: red; cursor: pointer; font-size: 14px; }
+        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
+        .card { width: 100%; max-width: 500px; margin: 50px auto; padding: 40px; background: white; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; cursor: pointer; }
+        .label { font-size: 0.8rem; color: #888; text-transform: uppercase; margin-bottom: 10px; }
+        .content { font-size: 1.5rem; font-weight: bold; min-height: 50px; }
     </style>
 </head>
 <body>
-
-    <h2>Tạo & Học Flashcard Ngẫu nhiên</h2>
-    <div class="input-group">
-        <input type="text" id="question" placeholder="Nhập câu hỏi tại đây...">
-    </div>
-    <div class="input-group">
-        <textarea id="answer" rows="3" placeholder="Nhập câu trả lời tại đây..."></textarea>
-    </div>
-    <div class="btn-row">
-        <button class="btn-add" onclick="addQA()">Thêm câu hỏi</button>
-        <button class="btn-flash" onclick="openFlashcards()">Mở Flashcard (Ngẫu nhiên)</button>
-    </div>
-
-    <div id="list">
-        <h3>Danh sách câu hỏi của bạn:</h3>
-        </div>
+    <h2>Danh sách Flashcard</h2>
+    <div id="list">Đang tải...</div>
+    <button onclick="openFlashcards()">Học Ngẫu Nhiên</button>
 
     <script>
-        let qaList = JSON.parse(localStorage.getItem('myQA')) || [];
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydFz4Xx9qUhQufeIZPhw5kslRS48A63Qe6U5ZGmoAYg7w_bELp3gQYwG7LlbExZf-Y/exec";
+        let qaList = [];
 
-        function renderList() {
-            const list = document.getElementById('list');
-            // Dọn dẹp danh sách cũ
-            list.innerHTML = '<h3>Danh sách câu hỏi của bạn:</h3>'; 
-            qaList.forEach((item, index) => {
-                list.innerHTML += `
-                    <div class="qa-item">
-                        <div><strong>Q:</strong> ${item.q}</div>
-                        <div><strong>A:</strong> ${item.a}</div>
-                        <span class="del-btn" onclick="deleteQA(${index})">Xóa</span>
-                    </div>
-                `;
-            });
-        }
-
-        function addQA() {
-            const q = document.getElementById('question').value;
-            const a = document.getElementById('answer').value;
-            if (!q || !a) return alert("Vui lòng điền đủ cả Câu hỏi và Câu trả lời!");
-            
-            qaList.push({q, a});
-            localStorage.setItem('myQA', JSON.stringify(qaList));
-            document.getElementById('question').value = '';
-            document.getElementById('answer').value = '';
-            renderList();
-        }
-
-        function deleteQA(index) {
-            qaList.splice(index, 1);
-            localStorage.setItem('myQA', JSON.stringify(qaList));
-            renderList();
-        }
-
-        // --- Cập nhật quan trọng: Hàm xáo trộn ---
-        function shuffle(array) {
-            let currentIndex = array.length, randomIndex;
-            while (currentIndex != 0) {
-                randomIndex = Math.floor(Math.random() * currentIndex);
-                currentIndex--;
-                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-            }
-            return array;
+        async function loadData() {
+            const res = await fetch(SCRIPT_URL);
+            qaList = await res.json();
+            document.getElementById('list').innerHTML = `Đã tải ${qaList.length} câu.`;
         }
 
         function openFlashcards() {
-            if (qaList.length === 0) return alert("Chưa có câu hỏi nào để học! Vui lòng nhập dữ liệu.");
-            const newWin = window.open("", "_blank", "width=800,height=600");
-
-            // Tạo một bản sao và xáo trộn bản sao đó
-            let shuffledData = shuffle([...qaList]); 
-
-            newWin.document.write(`
+            if (qaList.length === 0) return alert("Chưa có dữ liệu!");
+            const win = window.open("", "_blank", "width=600,height=500");
+            const shuffled = [...qaList].sort(() => Math.random() - 0.5);
+            
+            win.document.write(`
                 <html><style>
-                    body { margin:0; display: flex; align-items: center; justify-content: center; height: 100vh; background: #2c3e50; color: #fff; font-family: sans-serif; position: relative; }
-                    .card { width: 85%; height: 75%; background: #fff; color: #333; border-radius: 20px; 
-                            display: flex; align-items: center; justify-content: center; padding: 40px; 
-                            text-align: center; cursor: pointer; box-shadow: 0 20px 40px rgba(0,0,0,0.5); 
-                            transition: transform 0.6s, background-color 0.3s, color 0.3s; transform-style: preserve-3d; font-size: 2.8rem; font-weight: bold; }
-                    .card:hover { transform: scale(1.03); }
-                    .hint { position: absolute; bottom: 20px; color: #bdc3c7; font-size: 1.1rem; }
-                    .random-flag { position: absolute; top: 10px; right: 10px; background: #e74c3c; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.9rem; font-weight: bold; }
+                    body { display:flex; justify-content:center; align-items:center; height:100vh; background:#2c3e50; margin:0; }
+                    .card { background:white; padding:40px; border-radius:15px; text-align:center; cursor:pointer; width:70%; }
                 </style>
                 <body>
-                    <div class="random-flag">CHẾ ĐỘ NGẪU NHIÊN</div>
-                    <div class="card" id="card" onclick="flip()">Câu hỏi: ${shuffledData[0].q}</div>
-                    <div class="hint">Nhấp vào thẻ để lật xem đáp án | Nhấp lần nữa để sang thẻ tiếp theo</div>
+                    <div class="card" onclick="flip()" id="c">
+                        <div id="l">CÂU HỎI</div>
+                        <h2 id="t">${shuffled[0].q}</h2>
+                    </div>
                     <script>
-                        let data = ${JSON.stringify(shuffledData)};
-                        let idx = 0; let showQ = true;
+                        const d = ${JSON.stringify(shuffled)}; let i=0; let showA=false;
                         function flip() {
-                            const card = document.getElementById('card');
-                            if(showQ) {
-                                card.style.background = "#27ae60"; card.style.color = "white";
-                                card.innerText = "Trả lời: " + data[idx].a;
+                            showA = !showA;
+                            if(showA) {
+                                document.getElementById('l').innerText = "TRẢ LỜI";
+                                document.getElementById('t').innerText = d[i].a;
                             } else {
-                                idx = (idx + 1) % data.length;
-                                card.style.background = "#fff"; card.style.color = "#333";
-                                card.innerText = "Câu hỏi: " + data[idx].q;
+                                i = (i + 1) % d.length;
+                                document.getElementById('l').innerText = "CÂU HỎI";
+                                document.getElementById('t').innerText = d[i].q;
                             }
-                            showQ = !showQ;
                         }
                     <\/script>
                 </body></html>
             `);
         }
-
-        renderList(); // Hiển thị danh sách khi tải trang
+        loadData();
     </script>
 </body>
 </html>
