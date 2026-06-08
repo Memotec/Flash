@@ -2,56 +2,75 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Flashcard Google Sheets</title>
+    <title>Flashcard Quản lý</title>
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
-        .card { width: 100%; max-width: 500px; margin: 50px auto; padding: 40px; background: white; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; cursor: pointer; }
-        .label { font-size: 0.8rem; color: #888; text-transform: uppercase; margin-bottom: 10px; }
-        .content { font-size: 1.5rem; font-weight: bold; min-height: 50px; }
+        body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 30px auto; padding: 20px; background-color: #f4f7f6; }
+        .input-group { margin-bottom: 20px; }
+        input, textarea { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        button { padding: 12px 20px; cursor: pointer; border: none; border-radius: 8px; color: white; font-weight: bold; margin-right: 10px; }
+        .btn-add { background: #27ae60; }
+        .btn-flash { background: #e67e22; }
     </style>
 </head>
 <body>
-    <h2>Danh sách Flashcard</h2>
-    <div id="list">Đang tải...</div>
-    <button onclick="openFlashcards()">Học Ngẫu Nhiên</button>
+    <h2>Flashcard Google Sheets</h2>
+    <div class="input-group">
+        <input type="text" id="question" placeholder="Câu hỏi...">
+        <textarea id="answer" rows="3" placeholder="Trả lời..."></textarea>
+    </div>
+    <button class="btn-add" id="addBtn" onclick="addQA()">Thêm câu hỏi</button>
+    <button class="btn-flash" onclick="openFlashcards()">Học Ngẫu Nhiên</button>
 
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydFz4Xx9qUhQufeIZPhw5kslRS48A63Qe6U5ZGmoAYg7w_bELp3gQYwG7LlbExZf-Y/exec";
         let qaList = [];
 
         async function loadData() {
-            const res = await fetch(SCRIPT_URL);
-            qaList = await res.json();
-            document.getElementById('list').innerHTML = `Đã tải ${qaList.length} câu.`;
+            try {
+                const res = await fetch(SCRIPT_URL);
+                qaList = await res.json();
+            } catch (e) { alert("Không thể tải dữ liệu!"); }
+        }
+
+        async function addQA() {
+            const q = document.getElementById('question').value;
+            const a = document.getElementById('answer').value;
+            if (!q || !a) return alert("Vui lòng điền đủ!");
+
+            document.getElementById('addBtn').disabled = true;
+            await fetch(SCRIPT_URL, {
+                method: "POST", mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({q, a})
+            });
+            alert("Đã lưu!");
+            document.getElementById('addBtn').disabled = false;
+            location.reload(); // Làm mới trang để cập nhật danh sách
         }
 
         function openFlashcards() {
-            if (qaList.length === 0) return alert("Chưa có dữ liệu!");
-            const win = window.open("", "_blank", "width=600,height=500");
-            const shuffled = [...qaList].sort(() => Math.random() - 0.5);
+            if (qaList.length === 0) return alert("Đang tải dữ liệu hoặc chưa có câu hỏi!");
+            
+            const win = window.open("", "_blank", "width=800,height=600");
+            const data = [...qaList].sort(() => Math.random() - 0.5);
             
             win.document.write(`
                 <html><style>
-                    body { display:flex; justify-content:center; align-items:center; height:100vh; background:#2c3e50; margin:0; }
-                    .card { background:white; padding:40px; border-radius:15px; text-align:center; cursor:pointer; width:70%; }
+                    body { background: #2c3e50; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:white; font-family:sans-serif; margin:0; }
+                    .card { background:white; color:#333; padding:50px; width:80%; border-radius:20px; text-align:center; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,0.5); }
                 </style>
                 <body>
-                    <div class="card" onclick="flip()" id="c">
-                        <div id="l">CÂU HỎI</div>
-                        <h2 id="t">${shuffled[0].q}</h2>
+                    <div class="card" onclick="next()">
+                        <div id="lbl" style="font-size:1rem; color:#888;">CÂU HỎI</div>
+                        <h1 id="txt">${data[0].q}</h1>
                     </div>
                     <script>
-                        const d = ${JSON.stringify(shuffled)}; let i=0; let showA=false;
-                        function flip() {
+                        const d = ${JSON.stringify(data)}; let i=0; let showA=false;
+                        function next() {
                             showA = !showA;
-                            if(showA) {
-                                document.getElementById('l').innerText = "TRẢ LỜI";
-                                document.getElementById('t').innerText = d[i].a;
-                            } else {
-                                i = (i + 1) % d.length;
-                                document.getElementById('l').innerText = "CÂU HỎI";
-                                document.getElementById('t').innerText = d[i].q;
-                            }
+                            document.getElementById('lbl').innerText = showA ? "TRẢ LỜI" : "CÂU HỎI";
+                            document.getElementById('txt').innerText = showA ? d[i].a : d[i].q;
+                            if (!showA) i = (i + 1) % d.length;
                         }
                     <\/script>
                 </body></html>
